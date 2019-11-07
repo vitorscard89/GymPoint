@@ -1,3 +1,9 @@
+import * as Yup from 'yup';
+import { format } from 'date-fns';
+
+import Plan from '../models/Plan';
+import Student from '../models/Student';
+
 class RegistrationsController {
   async index(req, res) {
     return res.json({ ok: true });
