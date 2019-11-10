@@ -7,7 +7,52 @@ import Registration from '../models/Registration';
 
 class RegistrationsController {
   async index(req, res) {
-    return res.json({ ok: true });
+    const { page = 1 } = req.query;
+
+    const registration = await Registration.findAll({
+      order: ['id'],
+      limit: 20,
+      offset: (page - 1) * 20,
+      attributes: ['id', 'start_date', 'end_date', 'price'],
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          attributes: ['id', 'name'],
+        },
+        {
+          model: Plan,
+          as: 'plan',
+          attributes: ['id', 'title', 'duration', 'price'],
+        },
+      ],
+    });
+    return res.json(registration);
+  }
+
+  async show(req, res) {
+    const { page = 1 } = req.query;
+
+    const registration = await Registration.findAll({
+      where: { student_id: req.params.id },
+      order: ['created_at'],
+      limit: 20,
+      offset: (page - 1) * 20,
+      attributes: ['id', 'start_date', 'end_date', 'price'],
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          attributes: ['id', 'name'],
+        },
+        {
+          model: Plan,
+          as: 'plan',
+          attributes: ['id', 'title', 'duration', 'price'],
+        },
+      ],
+    });
+    return res.json(registration);
   }
 
   async store(req, res) {
@@ -53,7 +98,7 @@ class RegistrationsController {
     const end_date = addMonths(dayStart, plan.duration);
     const price = plan.price * plan.duration;
 
-    const registration = await Registration.create({
+    await Registration.create({
       student_id,
       plan_id,
       start_date: dayStart,
@@ -67,11 +112,76 @@ class RegistrationsController {
     //   registration,
     // });
 
-    return res.json(registration);
+    return res.json({
+      student_id,
+      plan_id,
+      start_date: dayStart,
+      end_date,
+      price,
+    });
   }
 
   async update(req, res) {
-    return res.json({ ok: true });
+    const schema = Yup.object().shape({
+      student_id: Yup.number().required(),
+      plan_id: Yup.number().required(),
+      start_date: Yup.date().required(),
+    });
+
+    if (!(await schema.isValid(req.body))) {
+      return res.status(400).json({ error: 'Validation fails' });
+    }
+
+    const registration = Registration.findByPk({
+      where: { id: req.params.id },
+    });
+
+    if (!registration) {
+      return res.status(400).json({ error: 'Registration not existis' });
+    }
+    if (req.body.student_id !== registration.student_id) {
+      const student = await Student.findByPk(req.body.student_id);
+      if (!student) {
+        return res.status(400).json({ error: 'Student not exists' });
+      }
+    }
+
+    if (
+      req.body.plan_id !== registration.plan_id ||
+      req.body.start_date !== registration.start_date
+    ) {
+      const plan = await Plan.findByPk(req.body.plan_id);
+      if (!plan) {
+        return res.status(400).json({ error: 'Plan not exists' });
+      }
+      if (req.body.start_date !== registration.start_date) {
+        const dayStart = startOfDay(parseISO(req.body.start_date));
+        const actualDate = new Date();
+        if (isBefore(dayStart, startOfDay(actualDate))) {
+          return res
+            .status(400)
+            .json({ error: 'Past dates are not permitted' });
+        }
+      }
+      req.body.end_date = addMonths(req.body.start_date, plan.duration);
+      req.body.price = plan.price * plan.duration;
+    }
+
+    const {
+      student_id,
+      plan_id,
+      start_date,
+      end_date,
+      price,
+    } = await Registration.update(req.body);
+
+    return res.json({
+      student_id,
+      plan_id,
+      start_date,
+      end_date,
+      price,
+    });
   }
 
   async delete(req, res) {

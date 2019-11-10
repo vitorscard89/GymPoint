@@ -33,6 +33,7 @@ routes.delete('/plans/:id', PlansController.delete);
 
 routes.post('/registration', RegistrationsController.store);
 routes.get('/registration', RegistrationsController.index);
+routes.get('/registration/:id', RegistrationsController.show);
 routes.put('/registration/:id', RegistrationsController.update);
 routes.delete('/registration/:id', RegistrationsController.delete);
 
