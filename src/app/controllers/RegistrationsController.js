@@ -123,7 +123,6 @@ class RegistrationsController {
 
   async update(req, res) {
     const schema = Yup.object().shape({
-      student_id: Yup.number().required(),
       plan_id: Yup.number().required(),
       start_date: Yup.date().required(),
     });
@@ -132,56 +131,29 @@ class RegistrationsController {
       return res.status(400).json({ error: 'Validation fails' });
     }
 
-    const registration = Registration.findByPk({
-      where: { id: req.params.id },
+    const { plan_id, start_date } = req.body;
+
+    const plan = await Plan.findByPk(plan_id);
+    if (!plan) {
+      return res.status(400).json({ error: 'Plan not exists' });
+    }
+
+    const registration = await Registration.findByPk(req.params.id);
+
+    const dayStart = startOfDay(parseISO(start_date));
+
+    if (isBefore(dayStart, startOfDay(registration.start_date))) {
+      return res.status(400).json({ error: 'Past dates are not permitted' });
+    }
+
+    await registration.update({
+      plan_id,
+      start_date: dayStart,
+      end_date: addMonths(dayStart, plan.duration),
+      price: plan.price * plan.duration,
     });
 
-    if (!registration) {
-      return res.status(400).json({ error: 'Registration not existis' });
-    }
-    if (req.body.student_id !== registration.student_id) {
-      const student = await Student.findByPk(req.body.student_id);
-      if (!student) {
-        return res.status(400).json({ error: 'Student not exists' });
-      }
-    }
-
-    if (
-      req.body.plan_id !== registration.plan_id ||
-      req.body.start_date !== registration.start_date
-    ) {
-      const plan = await Plan.findByPk(req.body.plan_id);
-      if (!plan) {
-        return res.status(400).json({ error: 'Plan not exists' });
-      }
-      if (req.body.start_date !== registration.start_date) {
-        const dayStart = startOfDay(parseISO(req.body.start_date));
-        const actualDate = new Date();
-        if (isBefore(dayStart, startOfDay(actualDate))) {
-          return res
-            .status(400)
-            .json({ error: 'Past dates are not permitted' });
-        }
-      }
-      req.body.end_date = addMonths(req.body.start_date, plan.duration);
-      req.body.price = plan.price * plan.duration;
-    }
-
-    const {
-      student_id,
-      plan_id,
-      start_date,
-      end_date,
-      price,
-    } = await Registration.update(req.body);
-
-    return res.json({
-      student_id,
-      plan_id,
-      start_date,
-      end_date,
-      price,
-    });
+    return res.json(registration);
   }
 
   async delete(req, res) {
