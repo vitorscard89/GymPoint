@@ -1,5 +1,4 @@
 import {
-  parseISO,
   isBefore,
   isAfter,
   subDays,
@@ -7,15 +6,24 @@ import {
   endOfDay,
   addDays,
 } from 'date-fns';
-// import Checkins from '../models/Checkin';
+import Checkin from '../Schemas/Checkin';
 import Students from '../models/Student';
 import Registrations from '../models/Registration';
 
 class CheckinsController {
   async index(req, res) {
-    console.log(req.params.id);
+    const student = await Students.findByPk(req.params.id);
+    if (!student) {
+      return res.status(400).json({ error: 'studen not exists' });
+    }
 
-    return res.json({ ok: true });
+    const checkin = await Checkin.find({
+      student_id: req.params.id,
+    })
+      .sort({ createdAt: 'desc' })
+      .limit(20);
+
+    return res.json(checkin);
   }
 
   async store(req, res) {
@@ -24,23 +32,21 @@ class CheckinsController {
       return res.status(400).json({ error: 'studen not exists' });
     }
 
-    const { start_date, end_date } = await Registrations.findAll({
+    const registration = await Registrations.findOne({
       where: { student_id: req.params.id },
     });
-
-    const endDate = parseISO(end_date);
-    if (isBefore(endDate, new Date())) {
-      return res.status(400).json({ error: 'Past dates are not permitted' });
+    if (isBefore(new Date(), registration.start_date)) {
+      return res.status(400).json({ error: 'Date is before the start date' });
     }
-    const startDate = parseISO(start_date);
-    if (isAfter(startDate, new Date())) {
-      return res.status(400).json({ error: 'Past dates are not permitted' });
+
+    if (isAfter(new Date(), registration.end_date)) {
+      return res.status(400).json({ error: 'Date is after the end date' });
     }
 
     const today = startOfDay(new Date());
     const lastDayCheckin = subDays(today, 7);
 
-    const checkins = await Checkins.find({
+    const checkins = await Checkin.find({
       student_id: req.params.id,
     })
       .gte('createdAt', startOfDay(lastDayCheckin))
@@ -56,7 +62,7 @@ class CheckinsController {
       });
     }
 
-    await Checkins.create({
+    await Checkin.create({
       student_id: req.params.id,
     });
 
