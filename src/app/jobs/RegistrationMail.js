@@ -11,7 +11,7 @@ class RegistrationMail {
     const { registration } = data;
     await Mail.sendMail({
       to: `${registration.provider.name} <${registration.provider.email}>`,
-      subject: 'Matricula VCadastrada',
+      subject: 'Matricula Cadastrada',
       template: 'registration',
       context: {
         provider: registration.provider.name,

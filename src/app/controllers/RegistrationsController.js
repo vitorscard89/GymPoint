@@ -1,9 +1,13 @@
 import * as Yup from 'yup';
-import { isBefore, startOfDay, parseISO, addMonths } from 'date-fns';
+import { isBefore, startOfDay, parseISO, addMonths, format } from 'date-fns';
+import pt from 'date-fns/locale/pt';
+
+// import Queue from '../../lib/Queue';
 
 import Plan from '../models/Plan';
 import Student from '../models/Student';
 import Registration from '../models/Registration';
+import Notification from '../Schemas/Notification';
 
 class RegistrationsController {
   async index(req, res) {
@@ -106,6 +110,15 @@ class RegistrationsController {
       price,
     });
 
+    const formatteDate = format(dayStart, "'dia' dd 'de' MMMM'", {
+      locale: pt,
+    });
+
+    await Notification.create({
+      content: `Nova Matricula de ${student.name} com inicio em: ${formatteDate}`,
+      user: req.userId,
+    });
+
     // await Queue.add(RegistrationMail.key, {
     //   student,
     //   plan,
@@ -157,7 +170,16 @@ class RegistrationsController {
   }
 
   async delete(req, res) {
-    return res.json({ ok: true });
+    const registration = await Registration.findByPk(req.params.id);
+    if (!registration) {
+      return res.status(400).json({ error: 'Registration not exists' });
+    }
+
+    await Registration.destroy();
+
+    return res
+      .status(200)
+      .json({ sucess: 'registration successfully removed' });
   }
 }
 export default new RegistrationsController();
