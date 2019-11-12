@@ -7,7 +7,8 @@ import pt from 'date-fns/locale/pt';
 import Plan from '../models/Plan';
 import Student from '../models/Student';
 import Registration from '../models/Registration';
-import Notification from '../Schemas/Notification';
+
+import Mail from '../../lib/Mail';
 
 class RegistrationsController {
   async index(req, res) {
@@ -110,13 +111,28 @@ class RegistrationsController {
       price,
     });
 
-    const formatteDate = format(dayStart, "'dia' dd 'de' MMMM'", {
+    const formatteStart_Date = format(dayStart, "dd'/'MM'/'yyyy", {
       locale: pt,
     });
 
-    await Notification.create({
-      content: `Nova Matricula de ${student.name} com inicio em: ${formatteDate}`,
-      user: req.userId,
+    const formatteEnd_Date = format(end_date, "dd'/'MM'/'yyyy", {
+      locale: pt,
+    });
+
+    /**
+     * Envio de e-mail para informar Matricula
+     */
+    await Mail.sendMail({
+      to: `${student.name} <${student.email}>`,
+      subject: 'Cadastro de Matrícula',
+      template: 'registration',
+      context: {
+        student: student.name,
+        plan: plan.title,
+        start_date: formatteStart_Date,
+        end_date: formatteEnd_Date,
+        price,
+      },
     });
 
     // await Queue.add(RegistrationMail.key, {
