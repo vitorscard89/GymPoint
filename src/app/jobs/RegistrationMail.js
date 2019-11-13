@@ -1,4 +1,4 @@
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import pt from 'date-fns/locale/pt';
 import Mail from '../../lib/Mail';
 
@@ -8,21 +8,25 @@ class RegistrationMail {
   }
 
   async handle({ data }) {
-    const { registration } = data;
+    const { student, plan, dayStart, end_date, price } = data;
+
+    const formatteStart_Date = format(dayStart, "dd'/'MM'/'yyyy", {
+      locale: pt,
+    });
+    const formatteEnd_Date = format(end_date, "dd'/'MM'/'yyyy", {
+      locale: pt,
+    });
+
     await Mail.sendMail({
-      to: `${registration.provider.name} <${registration.provider.email}>`,
-      subject: 'Matricula Cadastrada',
+      to: `${student.name} <${student.email}>`,
+      subject: 'Cadastro de Matrícula',
       template: 'registration',
       context: {
-        provider: registration.provider.name,
-        user: registration.user.name,
-        date: format(
-          parseISO(registration.date),
-          "'dia' dd 'de' MMMM', às' H:mm'h'",
-          {
-            locale: pt,
-          }
-        ),
+        student: student.name,
+        plan: plan.title,
+        start_date: formatteStart_Date,
+        end_date: formatteEnd_Date,
+        price,
       },
     });
   }

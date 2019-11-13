@@ -1,14 +1,13 @@
 import * as Yup from 'yup';
-import { isBefore, startOfDay, parseISO, addMonths, format } from 'date-fns';
-import pt from 'date-fns/locale/pt';
+import { isBefore, startOfDay, parseISO, addMonths } from 'date-fns';
 
-// import Queue from '../../lib/Queue';
+import Queue from '../../lib/Queue';
+
+import RegistrationMail from '../jobs/RegistrationMail';
 
 import Plan from '../models/Plan';
 import Student from '../models/Student';
 import Registration from '../models/Registration';
-
-import Mail from '../../lib/Mail';
 
 class RegistrationsController {
   async index(req, res) {
@@ -111,35 +110,13 @@ class RegistrationsController {
       price,
     });
 
-    const formatteStart_Date = format(dayStart, "dd'/'MM'/'yyyy", {
-      locale: pt,
+    await Queue.add(RegistrationMail.key, {
+      student,
+      plan,
+      dayStart,
+      end_date,
+      price,
     });
-
-    const formatteEnd_Date = format(end_date, "dd'/'MM'/'yyyy", {
-      locale: pt,
-    });
-
-    /**
-     * Envio de e-mail para informar Matricula
-     */
-    await Mail.sendMail({
-      to: `${student.name} <${student.email}>`,
-      subject: 'Cadastro de Matrícula',
-      template: 'registration',
-      context: {
-        student: student.name,
-        plan: plan.title,
-        start_date: formatteStart_Date,
-        end_date: formatteEnd_Date,
-        price,
-      },
-    });
-
-    // await Queue.add(RegistrationMail.key, {
-    //   student,
-    //   plan,
-    //   registration,
-    // });
 
     return res.json({
       student_id,

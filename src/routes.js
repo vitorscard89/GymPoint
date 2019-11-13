@@ -22,8 +22,9 @@ routes.post('/session', SessionController.store);
 
 routes.post('/student/:id/checkins', CheckinController.store);
 routes.get('/student/:id/checkins', CheckinController.index);
+
 routes.post('/student/:id/help-orders', HelpOrderController.store);
-routes.get('/student/:id/help-orders', HelpOrderController.index);
+routes.get('/student/:id/help-orders', HelpOrderController.show);
 
 routes.use(authModdleware);
 routes.post('/files', upload.single('files'), (req, res) => {
@@ -44,6 +45,8 @@ routes.get('/registration/:id', RegistrationsController.show);
 routes.put('/registration/:id', RegistrationsController.update);
 routes.delete('/registration/:id', RegistrationsController.delete);
 
-routes.post('help-orders/:id/answer', HelpOrderController.update);
+/** List all help-orders no answers */
+routes.get('/help-orders/no-answer', HelpOrderController.index);
+routes.post('/help-orders/:id/answer', HelpOrderController.update);
 
 export default routes;
